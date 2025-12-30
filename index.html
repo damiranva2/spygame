@@ -1,859 +1,719 @@
 <!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0b1220" />
-  <title>Игра “Шпион”</title>
+  <title>Игра «Шпион»</title>
+
   <style>
     :root{
-      --bg0:#070b14;
-      --bg1:#0b1220;
-      --card: rgba(255,255,255,.06);
-      --card2: rgba(255,255,255,.10);
-      --stroke: rgba(255,255,255,.12);
-      --text: rgba(255,255,255,.92);
-      --muted: rgba(255,255,255,.68);
-      --faint: rgba(255,255,255,.42);
+      /* Базовые цвета */
+      --bg: #0b0f17;
+      --card: rgba(255,255,255,.08);
+      --card2: rgba(255,255,255,.12);
+      --text: #eaf0ff;
+      --muted: rgba(234,240,255,.75);
+      --border: rgba(255,255,255,.14);
 
-      --a1:#7c3aed; /* violet */
-      --a2:#06b6d4; /* cyan */
-      --good:#22c55e;
-      --bad:#ef4444;
-      --warn:#f59e0b;
+      --ok: #18c964;
+      --danger: #ff3b30;
+      --warn: #ffcc00;
 
-      --shadow: 0 18px 60px rgba(0,0,0,.55);
-      --radius: 20px;
-      --radius2: 28px;
+      --shadow: 0 18px 50px rgba(0,0,0,.42);
+      --radius: 18px;
 
-      --safe-top: env(safe-area-inset-top, 0px);
-      --safe-bot: env(safe-area-inset-bottom, 0px);
+      /* Стильный режим (градиенты) */
+      --grad: radial-gradient(1200px 600px at 20% 0%, rgba(93,182,255,.30), transparent 55%),
+              radial-gradient(900px 500px at 90% 10%, rgba(255,97,214,.22), transparent 60%),
+              radial-gradient(1000px 700px at 40% 110%, rgba(43,255,192,.16), transparent 55%),
+              linear-gradient(180deg, #070a10 0%, #0b0f17 38%, #070a10 100%);
+
+      /* Минималистичный режим */
+      --mini-bg: #2b2b2b;
+      --mini-card: #3a3a3a;
+      --mini-card2: #444;
+      --mini-text: #f2f2f2;
+      --mini-muted: rgba(242,242,242,.75);
+      --mini-border: rgba(255,255,255,.14);
+      --mini-shadow: 0 12px 28px rgba(0,0,0,.35);
     }
 
-    *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    html,body{ height:100%; margin:0; }
+    /* Учитываем safe-area на Samsung/Android */
     body{
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      background: var(--grad);
       color: var(--text);
-      background:
-        radial-gradient(1200px 900px at 15% 10%, rgba(124,58,237,.35), transparent 55%),
-        radial-gradient(900px 700px at 85% 25%, rgba(6,182,212,.28), transparent 55%),
-        radial-gradient(700px 700px at 45% 85%, rgba(34,197,94,.14), transparent 55%),
-        linear-gradient(180deg, var(--bg0), var(--bg1));
-      overflow-x:hidden;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+      -webkit-tap-highlight-color: transparent;
+      overflow-x: hidden;
     }
 
-    /* Контейнер “под S23”: приятная ширина, но остаётся адаптивным */
-    .wrap{
-      min-height:100%;
-      padding: calc(18px + var(--safe-top)) 16px calc(18px + var(--safe-bot));
-      display:flex;
-      justify-content:center;
+    /* Минималистичный режим */
+    body.minimal{
+      background: var(--mini-bg);
+      color: var(--mini-text);
     }
+
     .app{
-      width: min(430px, 100%);
-      display:flex;
-      flex-direction:column;
-      gap:14px;
+      width: 100%;
+      max-width: 520px; /* идеально под 6.6" FHD+ — не разъезжается на планшетах */
+      margin: 0 auto;
+      padding: calc(18px + env(safe-area-inset-top)) 16px calc(18px + env(safe-area-inset-bottom)) 16px;
+      box-sizing: border-box;
     }
 
     header{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      padding: 14px 16px;
-      border:1px solid var(--stroke);
-      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
-      border-radius: var(--radius2);
-      box-shadow: var(--shadow);
-      position: sticky;
-      top: calc(10px + var(--safe-top));
-      backdrop-filter: blur(12px);
-      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
     }
+
     .brand{
-      display:flex; flex-direction:column; line-height:1.1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
     }
-    .brand .t{
+    .title{
+      font-size: 22px;
       font-weight: 800;
       letter-spacing: .2px;
-      font-size: 18px;
+      line-height: 1.15;
     }
-    .brand .s{
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 4px;
-    }
-
-    .chip{
-      display:flex; align-items:center; gap:8px;
-      padding: 10px 12px;
-      border-radius: 999px;
-      border: 1px solid var(--stroke);
-      background: rgba(255,255,255,.05);
-      color: var(--muted);
-      font-size: 12px;
-      white-space: nowrap;
-    }
-    .dot{
-      width:10px; height:10px; border-radius:999px;
-      background: linear-gradient(135deg, var(--a1), var(--a2));
-      box-shadow: 0 0 0 4px rgba(124,58,237,.12);
-    }
-
-    main{
-      display:flex;
-      flex-direction:column;
-      gap:14px;
-    }
-
-    .card{
-      border:1px solid var(--stroke);
-      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
-      border-radius: var(--radius2);
-      box-shadow: var(--shadow);
-      overflow:hidden;
-    }
-
-    .card .inner{
-      padding: 16px;
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-    }
-
-    .row{
-      display:flex;
-      gap:12px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
-
-    .title{
-      font-size: 18px;
-      font-weight: 800;
-      margin: 0;
-    }
-    .desc{
-      margin:0;
-      color: var(--muted);
-      line-height: 1.35;
+    .subtitle{
       font-size: 13px;
+      color: var(--muted);
     }
-
-    .divider{
-      height:1px;
-      background: rgba(255,255,255,.10);
-    }
+    body.minimal .subtitle{ color: var(--mini-muted); }
 
     .pill{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
       padding: 10px 12px;
       border-radius: 999px;
-      background: rgba(255,255,255,.06);
-      border:1px solid rgba(255,255,255,.10);
-      color: var(--muted);
+      background: var(--card);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      user-select: none;
+    }
+    body.minimal .pill{
+      background: var(--mini-card);
+      border-color: var(--mini-border);
+      box-shadow: var(--mini-shadow);
+    }
+
+    .pill span{
       font-size: 13px;
+      color: var(--muted);
+    }
+    body.minimal .pill span{ color: var(--mini-muted); }
+
+    /* Switch */
+    .switch{
+      position: relative;
+      width: 44px;
+      height: 26px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.18);
+      border: 1px solid rgba(255,255,255,.16);
+      flex: 0 0 auto;
+    }
+    body.minimal .switch{
+      background: rgba(255,255,255,.12);
+      border-color: rgba(255,255,255,.18);
+    }
+    .knob{
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.92);
+      transition: transform .18s ease;
+      box-shadow: 0 6px 18px rgba(0,0,0,.25);
+    }
+    .switch.on .knob{ transform: translateX(18px); }
+
+    .card{
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+      backdrop-filter: blur(14px);
+    }
+    body.minimal .card{
+      background: var(--mini-card);
+      border-color: var(--mini-border);
+      box-shadow: var(--mini-shadow);
+      backdrop-filter: none;
+    }
+
+    .stack{ display: flex; flex-direction: column; gap: 12px; }
+
+    .row{ display: flex; gap: 10px; align-items: center; }
+    .row.wrap{ flex-wrap: wrap; }
+
+    label{
+      font-size: 13px;
+      color: var(--muted);
+    }
+    body.minimal label{ color: var(--mini-muted); }
+
+    input[type="number"]{
+      width: 100%;
+      height: 44px;
+      padding: 0 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.18);
+      color: var(--text);
+      font-size: 16px;
+      outline: none;
+      box-sizing: border-box;
+    }
+    body.minimal input[type="number"]{
+      background: rgba(0,0,0,.25);
+      color: var(--mini-text);
+      border-color: var(--mini-border);
+    }
+    input[type="number"]:focus{
+      border-color: rgba(93,182,255,.55);
+      box-shadow: 0 0 0 3px rgba(93,182,255,.16);
     }
 
     .btn{
-      appearance:none;
-      border:none;
-      cursor:pointer;
-      user-select:none;
-      -webkit-user-select:none;
-      padding: 12px 14px;
-      border-radius: 16px;
-      font-weight: 750;
-      color: rgba(255,255,255,.94);
-      background: linear-gradient(135deg, rgba(124,58,237,.92), rgba(6,182,212,.78));
-      box-shadow: 0 18px 50px rgba(0,0,0,.38);
-      transition: transform .12s ease, filter .12s ease;
-    }
-    .btn:active{ transform: translateY(1px) scale(.99); filter: brightness(.95); }
-    .btn.secondary{
-      background: rgba(255,255,255,.08);
-      border:1px solid rgba(255,255,255,.14);
+      width: 100%;
+      height: 46px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.12);
       color: var(--text);
-      box-shadow: none;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: .2px;
+      box-shadow: 0 14px 35px rgba(0,0,0,.33);
+      cursor: pointer;
+      user-select: none;
+      transition: transform .06s ease, filter .18s ease;
+    }
+    body.minimal .btn{
+      background: var(--mini-card2);
+      border-color: rgba(255,255,255,.14);
+      color: var(--mini-text);
+      box-shadow: var(--mini-shadow);
+    }
+    .btn:active{ transform: scale(.99); }
+
+    .btn.primary{
+      background: linear-gradient(135deg, rgba(93,182,255,.95), rgba(255,97,214,.9));
+      border: 0;
+    }
+    body.minimal .btn.primary{
+      background: #555;
+      border: 1px solid rgba(255,255,255,.14);
+    }
+
+    .btn.ok{
+      background: rgba(24,201,100,.18);
+      border-color: rgba(24,201,100,.38);
     }
     .btn.danger{
-      background: linear-gradient(135deg, rgba(239,68,68,.90), rgba(245,158,11,.82));
-    }
-    .btn.good{
-      background: linear-gradient(135deg, rgba(34,197,94,.88), rgba(6,182,212,.78));
-    }
-    .btn.ghost{
-      background: transparent;
-      border: 1px solid rgba(255,255,255,.14);
-      color: var(--muted);
-      box-shadow:none;
-    }
-    .btn:disabled{
-      opacity:.55;
-      cursor:not-allowed;
-    }
-
-    .grid2{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:12px;
-    }
-    @media (max-width: 360px){
-      .grid2{ grid-template-columns:1fr; }
-    }
-
-    .input{
-      width: 100%;
-      border-radius: 16px;
-      padding: 12px 14px;
-      border: 1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.06);
-      color: var(--text);
-      font-weight: 650;
-      outline:none;
-    }
-    .input:focus{
-      border-color: rgba(6,182,212,.55);
-      box-shadow: 0 0 0 4px rgba(6,182,212,.12);
-    }
-
-    .big{
-      font-size: 34px;
-      font-weight: 900;
-      letter-spacing: .2px;
-      line-height: 1.05;
-    }
-    .wordBox{
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-      padding: 16px;
-      border-radius: 22px;
-      border: 1px solid rgba(255,255,255,.12);
-      background: radial-gradient(900px 200px at 20% 10%, rgba(124,58,237,.25), transparent 55%),
-                  radial-gradient(700px 220px at 80% 0%, rgba(6,182,212,.22), transparent 55%),
-                  rgba(255,255,255,.05);
+      background: rgba(255,59,48,.18);
+      border-color: rgba(255,59,48,.38);
     }
 
     .hint{
-      color: var(--faint);
       font-size: 12px;
-      line-height: 1.25;
+      color: var(--muted);
+      line-height: 1.35;
     }
+    body.minimal .hint{ color: var(--mini-muted); }
 
-    .tag{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
+    .badge{
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
       padding: 8px 10px;
       border-radius: 999px;
+      background: rgba(255,255,255,.10);
       border: 1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.05);
       font-size: 12px;
       color: var(--muted);
     }
-    .tag .miniDot{
-      width:8px;height:8px;border-radius:999px;
-      background: rgba(255,255,255,.6);
-    }
-    .tag.good .miniDot{ background: rgba(34,197,94,.95); }
-    .tag.bad .miniDot{ background: rgba(239,68,68,.95); }
-    .tag.warn .miniDot{ background: rgba(245,158,11,.95); }
-
-    .footerNote{
-      text-align:center;
-      color: var(--faint);
-      font-size: 12px;
-      padding: 4px 0 0;
+    body.minimal .badge{
+      background: rgba(0,0,0,.18);
+      color: var(--mini-muted);
     }
 
-    .fadeIn{ animation: fade .18s ease-out; }
-    @keyframes fade{ from{ opacity:.0; transform: translateY(4px);} to{ opacity:1; transform: translateY(0);} }
-
-    /* Модалка */
-    .modal{
+    /* Полноэкранное объявление (зелёное/красное) */
+    .reveal{
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,.55);
-      display:none;
-      align-items: flex-end;
-      justify-content:center;
-      padding: 16px;
-      padding-bottom: calc(16px + var(--safe-bot));
-      z-index: 20;
+      z-index: 50;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      box-sizing: border-box;
+      text-align: center;
     }
-    .modal.show{ display:flex; }
-    .sheet{
-      width: min(430px, 100%);
-      border-radius: 26px;
-      border: 1px solid rgba(255,255,255,.14);
-      background: linear-gradient(180deg, rgba(20,26,44,.96), rgba(9,14,26,.96));
-      box-shadow: 0 30px 90px rgba(0,0,0,.65);
-      overflow:hidden;
+    .reveal.show{ display: flex; }
+    .reveal.normal{
+      background: radial-gradient(1200px 900px at 50% 10%, rgba(255,255,255,.20), transparent 55%),
+                  linear-gradient(180deg, rgba(24,201,100,.95), rgba(14,124,63,.98));
     }
-    .sheet .top{
-      padding: 14px 16px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      border-bottom: 1px solid rgba(255,255,255,.08);
+    .reveal.spy{
+      background: radial-gradient(1200px 900px at 50% 10%, rgba(255,255,255,.16), transparent 55%),
+                  linear-gradient(180deg, rgba(255,59,48,.95), rgba(128,12,10,.98));
     }
-    .sheet .top .h{
-      font-weight: 850;
+    body.minimal .reveal.normal{ background: #198754; }
+    body.minimal .reveal.spy{ background: #b42318; }
+
+    .revealBox{
+      width: 100%;
+      max-width: 520px;
+      background: rgba(0,0,0,.25);
+      border: 1px solid rgba(255,255,255,.22);
+      border-radius: 22px;
+      padding: 18px 16px;
+      box-shadow: 0 24px 60px rgba(0,0,0,.45);
+      backdrop-filter: blur(10px);
+    }
+    body.minimal .revealBox{
+      background: rgba(0,0,0,.20);
+      backdrop-filter: none;
+    }
+
+    .revealTitle{
       font-size: 14px;
-      color: var(--text);
+      opacity: .9;
+      margin-bottom: 10px;
+      letter-spacing: .3px;
     }
-    .sheet .body{
-      padding: 16px;
-      display:flex;
-      flex-direction:column;
-      gap:10px;
+    .revealMain{
+      font-size: clamp(34px, 6vw, 46px);
+      font-weight: 900;
+      line-height: 1.05;
+      margin-bottom: 12px;
+    }
+    .revealSub{
+      font-size: 14px;
+      opacity: .92;
+      line-height: 1.35;
+      margin-bottom: 16px;
     }
 
-    /* Невидимый/служебный */
-    .hidden{ display:none !important; }
+    .smallBtns{
+      display: flex;
+      gap: 10px;
+    }
+    .smallBtns .btn{ height: 44px; }
 
-    /* Для аккуратного клика/тапа */
-    a{ color: inherit; }
+    .divider{
+      height: 1px;
+      background: rgba(255,255,255,.14);
+      margin: 10px 0;
+    }
+    body.minimal .divider{ background: rgba(255,255,255,.12); }
+
+    .mono{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    /* Небольшая “пружинка” для плавности (90 Гц выглядит приятно) */
+    * { scroll-behavior: smooth; }
   </style>
 </head>
+
 <body>
-  <div class="wrap">
-    <div class="app">
-      <header>
-        <div class="brand">
-          <div class="t">🕵️ Игра “Шпион”</div>
-          <div class="s">Пасс-энд-плей • 1 шпион • русские слова</div>
-        </div>
-        <div class="chip" title="Оптимизация под мобильный экран">
-          <span class="dot"></span>
-          <span>S23-friendly</span>
-        </div>
-      </header>
-
-      <main id="main"></main>
-
-      <div class="footerNote">Подсказка: включи полноэкранный режим в браузере для максимального “вау”.</div>
-    </div>
-  </div>
-
-  <!-- Модалка: раскрытие роли -->
-  <div class="modal" id="modal">
-    <div class="sheet">
-      <div class="top">
-        <div class="h" id="modalTitle">Игрок</div>
-        <button class="btn ghost" id="modalClose">Закрыть</button>
+  <div class="app">
+    <header>
+      <div class="brand">
+        <div class="title">Игра «Шпион»</div>
+        <div class="subtitle">Передавайте телефон по кругу — шпион увидит это 👀</div>
       </div>
-      <div class="body" id="modalBody"></div>
+
+      <div class="pill" role="group" aria-label="Переключатель режима">
+        <span>Минимал</span>
+        <div id="modeSwitch" class="switch" tabindex="0" role="switch" aria-checked="false" aria-label="Минималистичный режим">
+          <div class="knob"></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Экран: Настройка -->
+    <section id="screenSetup" class="stack">
+      <div class="card stack">
+        <div class="row wrap" style="justify-content: space-between;">
+          <div class="badge">📱 Оптимизация под 6.6" (FHD+ 1080×2408)</div>
+          <div class="badge mono" id="wordsStatus">Слова: загрузка…</div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="stack">
+          <div>
+            <label for="players">Сколько игроков?</label>
+            <div style="height: 6px"></div>
+            <input id="players" type="number" min="3" max="20" value="5" inputmode="numeric" />
+            <div style="height: 8px"></div>
+            <div class="hint">Рекомендуется 3–12. Шпион будет один.</div>
+          </div>
+
+          <button id="btnStart" class="btn primary">Начать раздачу</button>
+
+          <button id="btnHow" class="btn">Как играть</button>
+        </div>
+      </div>
+
+      <div id="howBox" class="card stack" style="display:none;">
+        <div style="font-weight: 800; font-size: 16px;">Правила (коротко)</div>
+        <div class="hint">
+          1) Всем игрокам показывается одно и то же слово.<br>
+          2) Шпион видит только «ШПИОН».<br>
+          3) После раздачи вы обсуждаете: по кругу называете ассоциации/подсказки к слову.<br>
+          4) Если кто-то «мимо» — возможно он шпион 😄
+        </div>
+        <button id="btnHideHow" class="btn">Понятно</button>
+      </div>
+    </section>
+
+    <!-- Экран: Раздача -->
+    <section id="screenDeal" class="stack" style="display:none;">
+      <div class="card stack">
+        <div class="row wrap" style="justify-content: space-between;">
+          <div class="badge">🎭 Раздача</div>
+          <div class="badge mono" id="dealProgress">Игрок 1 / 5</div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div style="text-align:center;" class="stack">
+          <div style="font-weight:900; font-size: 18px;">Передай телефон игроку</div>
+          <div id="dealPlayer" style="font-weight:900; font-size: 34px; letter-spacing:.4px;">№1</div>
+          <div class="hint">Игрок №1 нажимает кнопку — увидит свою роль/слово. Потом снова скрыть и передать следующему.</div>
+
+          <button id="btnReveal" class="btn ok">Показать</button>
+          <button id="btnReset" class="btn danger">Сбросить игру</button>
+        </div>
+      </div>
+
+      <div class="card stack">
+        <div style="font-weight: 800;">Подсказка для честности</div>
+        <div class="hint">
+          Во время раздачи держите телефон ближе к себе, чтобы другие не подсмотрели.
+          После показа — сразу жмите «Скрыть».
+        </div>
+      </div>
+    </section>
+
+    <!-- Экран: После раздачи -->
+    <section id="screenAfter" class="stack" style="display:none;">
+      <div class="card stack">
+        <div class="row wrap" style="justify-content: space-between;">
+          <div class="badge">✅ Раздача завершена</div>
+          <div class="badge mono" id="afterInfo">Игроков: 5</div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="stack">
+          <div style="font-weight:900; font-size: 18px;">Обсуждение началось</div>
+          <div class="hint">
+            Идите по кругу и называйте ассоциации к слову (одним-двумя словами).
+            Шпион будет пытаться угадать слово по вашим подсказкам.
+          </div>
+
+          <button id="btnNewRound" class="btn primary">Новый раунд</button>
+          <button id="btnReset2" class="btn danger">Сбросить игру</button>
+        </div>
+      </div>
+
+      <div class="card stack">
+        <div style="font-weight:800;">Если хочешь «по-честному»</div>
+        <div class="hint">
+          Не называйте слово напрямую. Говорите намёками (например: «красное», «еда», «круглое»).
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Полноэкранное объявление -->
+  <div id="reveal" class="reveal" aria-live="polite">
+    <div class="revealBox">
+      <div class="revealTitle" id="revealTitle">Игрок №1</div>
+      <div class="revealMain" id="revealMain">СЛОВО</div>
+      <div class="revealSub" id="revealSub">Никому не показывай. Запомни и нажми «Скрыть».</div>
+
+      <div class="smallBtns">
+        <button id="btnHide" class="btn">Скрыть</button>
+        <button id="btnShowAgain" class="btn">Показать ещё раз</button>
+      </div>
     </div>
   </div>
 
-<script>
-(() => {
-  // ====== Настройки ======
-  const WORDS_URL = "words.json";      // <- твой файл со словами рядом с html
-  const MIN_PLAYERS = 3;
-  const MAX_PLAYERS = 20;
+  <script>
+    /**
+     * ✅ Подключение твоего JSON со словами:
+     * Положи рядом с этим HTML файл words.json в формате:
+     * ["яблоко","стол","машина", ...]
+     *
+     * Или объект:
+     * { "words": ["яблоко","стол", ...] }
+     */
+    const WORDS_URL = "words.json";
 
-  // ====== Состояние ======
-  const state = {
-    words: null,
-    players: 4,
-    started: false,
-    spyIndex: -1,
-    word: "",
-    revealed: new Set(),     // какие игроки уже посмотрели роль
-    phase: "setup",          // setup | reveal | play | end
-    current: 1               // текущий игрок (1..players) для выдачи роли
-  };
+    const $ = (id) => document.getElementById(id);
 
-  // ====== Утилиты ======
-  const $ = (sel, root=document) => root.querySelector(sel);
-  const main = $("#main");
+    // Экраны
+    const screenSetup = $("screenSetup");
+    const screenDeal  = $("screenDeal");
+    const screenAfter = $("screenAfter");
 
-  function randInt(min, maxInclusive){
-    return Math.floor(Math.random() * (maxInclusive - min + 1)) + min;
-  }
+    // UI
+    const playersInput = $("players");
+    const wordsStatus  = $("wordsStatus");
+    const howBox       = $("howBox");
 
-  function pickRandom(arr){
-    return arr[randInt(0, arr.length - 1)];
-  }
+    const dealProgress = $("dealProgress");
+    const dealPlayer   = $("dealPlayer");
 
-  function clamp(n, a, b){
-    return Math.max(a, Math.min(b, n));
-  }
+    const revealOverlay = $("reveal");
+    const revealTitle   = $("revealTitle");
+    const revealMain    = $("revealMain");
+    const revealSub     = $("revealSub");
 
-  function h(tag, attrs={}, ...children){
-    const el = document.createElement(tag);
-    for (const [k,v] of Object.entries(attrs || {})){
-      if (k === "class") el.className = v;
-      else if (k.startsWith("on") && typeof v === "function") el.addEventListener(k.slice(2).toLowerCase(), v);
-      else if (v !== null && v !== undefined) el.setAttribute(k, v);
+    const modeSwitch = $("modeSwitch");
+
+    // Кнопки
+    const btnStart    = $("btnStart");
+    const btnReveal   = $("btnReveal");
+    const btnHide     = $("btnHide");
+    const btnShowAgain= $("btnShowAgain");
+    const btnReset    = $("btnReset");
+    const btnReset2   = $("btnReset2");
+    const btnNewRound = $("btnNewRound");
+
+    const btnHow      = $("btnHow");
+    const btnHideHow  = $("btnHideHow");
+
+    // Состояние игры
+    const state = {
+      words: [],
+      playerCount: 5,
+      spyIndex: 0,      // 1..N
+      secretWord: "",
+      currentPlayer: 1,
+      lastRevealFor: 1,
+      revealedThisPlayer: false
+    };
+
+    // --- Режим (стильный/минимал) ---
+    function setMinimal(on){
+      document.body.classList.toggle("minimal", on);
+      modeSwitch.classList.toggle("on", on);
+      modeSwitch.setAttribute("aria-checked", on ? "true" : "false");
+      localStorage.setItem("spy_minimal", on ? "1" : "0");
     }
-    for (const ch of children.flat()){
-      if (ch === null || ch === undefined) continue;
-      if (typeof ch === "string") el.appendChild(document.createTextNode(ch));
-      else el.appendChild(ch);
+    function toggleMinimal(){
+      setMinimal(!document.body.classList.contains("minimal"));
     }
-    return el;
-  }
-
-  function setScreen(node){
-    main.innerHTML = "";
-    main.appendChild(node);
-    node.classList.add("fadeIn");
-  }
-
-  // ====== Загрузка слов ======
-  async function loadWords(){
-    try{
-      const res = await fetch(WORDS_URL, { cache: "no-store" });
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      const data = await res.json();
-      if (!Array.isArray(data) || data.length < 10) throw new Error("words.json должен быть массивом строк");
-      // чистим/нормализуем
-      const words = data
-        .filter(x => typeof x === "string")
-        .map(x => x.trim())
-        .filter(Boolean);
-      if (words.length < 10) throw new Error("В words.json слишком мало слов");
-      state.words = words;
-      return true;
-    }catch(e){
-      state.words = null;
-      showWordsError(e);
-      return false;
-    }
-  }
-
-  function showWordsError(err){
-    const card = h("div", {class:"card"},
-      h("div", {class:"inner"},
-        h("div", {class:"row"},
-          h("div", {class:"tag bad"}, h("span",{class:"miniDot"}), "Не удалось загрузить words.json")
-        ),
-        h("p", {class:"desc"},
-          "Положи рядом с этим HTML файл ",
-          h("b", {}, "words.json"),
-          " (массив строк на русском). Открой игру через локальный сервер (важно!)."
-        ),
-        h("div", {class:"wordBox"},
-          h("div", {class:"hint"},
-            "Почему может не работать:\n" +
-            "• Открыл(а) файл двойным кликом (file://) — браузер часто блокирует fetch.\n" +
-            "• words.json лежит не рядом с html.\n" +
-            "• В json неверный формат.\n\n" +
-            "Решение: запусти локальный сервер. Например:\n" +
-            "1) установи Node.js\n" +
-            "2) в папке с файлами: npx serve\n" +
-            "или Python: python -m http.server 8000"
-          ),
-          h("div", {class:"hint"}, "Техническая ошибка: " + String(err?.message || err))
-        ),
-        h("button", {class:"btn secondary", onclick: () => location.reload()}, "Перезагрузить")
-      )
-    );
-    setScreen(card);
-  }
-
-  // ====== Модалка ======
-  const modal = $("#modal");
-  const modalTitle = $("#modalTitle");
-  const modalBody = $("#modalBody");
-  $("#modalClose").addEventListener("click", () => modal.classList.remove("show"));
-  modal.addEventListener("click", (e) => {
-    if (e.target === modal) modal.classList.remove("show");
-  });
-
-  function openModal(title, bodyNodes){
-    modalTitle.textContent = title;
-    modalBody.innerHTML = "";
-    bodyNodes.forEach(n => modalBody.appendChild(n));
-    modal.classList.add("show");
-  }
-
-  // ====== Экраны ======
-  function screenSetup(){
-    const playersInput = h("input", {
-      class:"input",
-      type:"number",
-      inputmode:"numeric",
-      min: String(MIN_PLAYERS),
-      max: String(MAX_PLAYERS),
-      value: String(state.players),
-      "aria-label":"Количество игроков"
+    modeSwitch.addEventListener("click", toggleMinimal);
+    modeSwitch.addEventListener("keydown", (e)=>{
+      if(e.key === "Enter" || e.key === " "){
+        e.preventDefault();
+        toggleMinimal();
+      }
     });
 
-    const spyMode = h("div", {class:"pill"},
-      "🕶️ Шпионов: ",
-      h("b", {}, "1"),
-      h("span", {style:"opacity:.65"}, " (можно расширить позже)")
-    );
+    // --- Загрузка слов ---
+    async function loadWords(){
+      try{
+        const res = await fetch(WORDS_URL, { cache: "no-store" });
+        if(!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
 
-    const wordsStatus = state.words
-      ? h("div", {class:"tag good"}, h("span",{class:"miniDot"}), `Слова загружены: ${state.words.length}`)
-      : h("div", {class:"tag warn"}, h("span",{class:"miniDot"}), "Слова: загрузка…");
+        let list = [];
+        if(Array.isArray(data)) list = data;
+        else if(data && Array.isArray(data.words)) list = data.words;
 
-    const startBtn = h("button", {
-      class:"btn",
-      disabled: !state.words,
-      onclick: () => {
-        const n = clamp(parseInt(playersInput.value || "0", 10), MIN_PLAYERS, MAX_PLAYERS);
-        state.players = n;
+        list = list
+          .map(w => String(w).trim())
+          .filter(w => w.length >= 2);
 
-        // старт игры
-        state.spyIndex = randInt(1, state.players); // 1..players
-        state.word = pickRandom(state.words);
-        state.revealed = new Set();
-        state.phase = "reveal";
-        state.current = 1;
-        render();
+        if(list.length < 10) throw new Error("Мало слов в JSON");
+
+        state.words = list;
+        wordsStatus.textContent = "Слова: " + list.length;
+      }catch(err){
+        // Фолбэк (если words.json нет рядом) — чтобы игра всё равно работала
+        const fallback = [
+          "яблоко","телефон","самолёт","кофе","пирамида","школа","книга","море","космос","снег",
+          "музыка","компьютер","стул","карта","шоколад","пицца","парк","кино","гитара","поезд"
+        ];
+        state.words = fallback;
+        wordsStatus.textContent = "Слова: демо (" + fallback.length + ")";
       }
-    }, "Начать игру");
+    }
 
-    const card = h("div", {class:"card"},
-      h("div", {class:"inner"},
-        h("h2", {class:"title"}, "Настройка"),
-        h("p", {class:"desc"},
-          "Сначала выбери количество игроков. Затем телефон будет передаваться по кругу, чтобы каждый увидел свою роль."
-        ),
-        h("div", {class:"divider"}),
-        h("div", {class:"row"},
-          h("div", {style:"flex:1; min-width:180px; display:flex; flex-direction:column; gap:8px;"},
-            h("div", {class:"pill"}, "👥 Игроков: ", h("b", {}, String(state.players))),
-            playersInput
-          ),
-          h("div", {style:"display:flex; flex-direction:column; gap:8px;"},
-            spyMode,
-            wordsStatus
-          )
-        ),
-        h("div", {class:"grid2"},
-          startBtn,
-          h("button", {
-            class:"btn secondary",
-            onclick: () => openModal("Формат words.json", [
-              h("p", {class:"desc"},
-                "Создай файл ",
-                h("b", {}, "words.json"),
-                " рядом с этим HTML. Пример:"
-              ),
-              h("div", {class:"wordBox"},
-                h("div", {class:"hint"},
-                  '["яблоко","самолёт","молоко","кофе","театр"]'
-                )
-              ),
-              h("p", {class:"desc"},
-                "Если открываешь с телефона, лучше через локальный сервер/хостинг (GitHub Pages тоже подойдёт)."
-              )
-            ])
-          }, "Как подключить слова")
-        )
-      )
-    );
+    function randInt(min, maxInclusive){
+      return Math.floor(Math.random() * (maxInclusive - min + 1)) + min;
+    }
 
-    const tips = h("div", {class:"card"},
-      h("div", {class:"inner"},
-        h("h2", {class:"title"}, "Как играть"),
-        h("p", {class:"desc"},
-          "Все, кроме шпиона, получают одно слово. Шпион видит только “Ты шпион”.",
-          " Дальше вы по кругу говорите намёки на слово — так, чтобы шпион не понял сразу, но и чтобы свои поняли 🙂"
-        ),
-        h("div", {class:"row"},
-          h("div", {class:"tag"}, h("span",{class:"miniDot"}), "Пример: слово “яблоко”"),
-          h("div", {class:"tag"}, h("span",{class:"miniDot"}), "1: “красное”"),
-          h("div", {class:"tag"}, h("span",{class:"miniDot"}), "2: “еда”"),
-          h("div", {class:"tag"}, h("span",{class:"miniDot"}), "3: “металл” (палится 😄)")
-        )
-      )
-    );
+    function pickWord(){
+      const w = state.words[randInt(0, state.words.length - 1)];
+      return w;
+    }
 
-    setScreen(h("div", {}, card, tips));
-  }
+    function showScreen(which){
+      screenSetup.style.display = (which === "setup") ? "" : "none";
+      screenDeal.style.display  = (which === "deal")  ? "" : "none";
+      screenAfter.style.display = (which === "after") ? "" : "none";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
 
-  function screenReveal(){
-    const total = state.players;
-    const i = state.current;
+    function resetGame(){
+      state.playerCount = clampPlayers(parseInt(playersInput.value, 10) || 5);
+      playersInput.value = String(state.playerCount);
 
-    const progress = h("div", {class:"row"},
-      h("div", {class:"pill"}, "🎭 Выдача ролей"),
-      h("div", {class:"pill"}, "Игрок ", h("b", {}, String(i)), " из ", h("b", {}, String(total)))
-    );
+      state.spyIndex = 0;
+      state.secretWord = "";
+      state.currentPlayer = 1;
+      state.lastRevealFor = 1;
+      state.revealedThisPlayer = false;
 
-    const instructions = h("div", {class:"wordBox"},
-      h("div", {class:"hint"},
-        "Передай телефон игроку №" + i + ".\n" +
-        "Пусть он нажмёт кнопку “Показать роль”, посмотрит, затем нажмёт “Скрыть” и передаст следующему."
-      )
-    );
+      hideReveal();
+      showScreen("setup");
+    }
 
-    const showRole = h("button", {
-      class:"btn good",
-      onclick: () => {
-        const isSpy = (i === state.spyIndex);
-        const body = [];
+    function clampPlayers(n){
+      if(!Number.isFinite(n)) return 5;
+      return Math.max(3, Math.min(20, n));
+    }
 
-        body.push(h("div", {class:"row"},
-          h("div", {class: isSpy ? "tag bad" : "tag good"}, h("span",{class:"miniDot"}),
-            isSpy ? "ШПИОН" : "НЕ ШПИОН"
-          )
-        ));
+    function startRound(){
+      state.playerCount = clampPlayers(parseInt(playersInput.value, 10) || 5);
+      playersInput.value = String(state.playerCount);
 
-        body.push(h("div", {class:"wordBox"},
-          h("div", {class:"hint"}, "Твоя роль:"),
-          h("div", {class:"big"}, isSpy ? "Ты шпион 🕵️" : "Твоё слово"),
-          h("div", {class:"big", style: isSpy ? "opacity:.25; filter: blur(0px);" : ""}, isSpy ? "—" : state.word),
-          h("div", {class:"hint"},
-            isSpy
-              ? "Твоя цель — понять слово по подсказкам и не спалиться."
-              : "Давай аккуратные подсказки: чтобы свои поняли, а шпион — не сразу."
-          )
-        ));
+      state.spyIndex = randInt(1, state.playerCount);
+      state.secretWord = pickWord();
+      state.currentPlayer = 1;
+      state.revealedThisPlayer = false;
 
-        body.push(h("button", {
-          class:"btn secondary",
-          onclick: () => {
-            modal.classList.remove("show");
-            // отмечаем просмотр
-            state.revealed.add(i);
+      updateDealUI();
+      showScreen("deal");
+    }
 
-            // следующий игрок или конец выдачи
-            if (state.current < state.players) {
-              state.current += 1;
-              render();
-            } else {
-              state.phase = "play";
-              render();
-            }
-          }
-        }, "Скрыть и передать дальше"));
+    function updateDealUI(){
+      dealProgress.textContent = `Игрок ${state.currentPlayer} / ${state.playerCount}`;
+      dealPlayer.textContent = `№${state.currentPlayer}`;
+    }
 
-        openModal("Игрок №" + i, body);
+    function isSpy(playerIndex){
+      return playerIndex === state.spyIndex;
+    }
+
+    function showReveal(forPlayer){
+      state.lastRevealFor = forPlayer;
+
+      const spy = isSpy(forPlayer);
+      revealOverlay.classList.remove("normal","spy");
+      revealOverlay.classList.add(spy ? "spy" : "normal");
+      revealOverlay.classList.add("show");
+
+      revealTitle.textContent = `Игрок №${forPlayer}`;
+
+      if(spy){
+        revealMain.textContent = "ШПИОН";
+        revealSub.textContent = "Ты шпион. Смотри на подсказки, попробуй угадать слово.";
+      }else{
+        revealMain.textContent = state.secretWord.toUpperCase();
+        revealSub.textContent = "Никому не показывай. Запомни и нажми «Скрыть».";
       }
-    }, "Показать роль");
 
-    const resetBtn = h("button", {
-      class:"btn secondary",
-      onclick: () => {
-        state.phase = "setup";
-        state.started = false;
-        state.spyIndex = -1;
-        state.word = "";
-        state.revealed = new Set();
-        state.current = 1;
-        render();
+      // Вибрация (если поддерживается)
+      if(navigator.vibrate){
+        navigator.vibrate(spy ? [60, 40, 60] : 40);
       }
-    }, "Сбросить");
+    }
 
-    const card = h("div", {class:"card"},
-      h("div", {class:"inner"},
-        progress,
-        h("p", {class:"desc"},
-          "Важно: смотрит только текущий игрок. Остальные отворачиваются 🙂"
-        ),
-        instructions,
-        h("div", {class:"grid2"},
-          showRole,
-          resetBtn
-        )
-      )
-    );
+    function hideReveal(){
+      revealOverlay.classList.remove("show");
+    }
 
-    setScreen(card);
-  }
+    function nextPlayer(){
+      if(state.currentPlayer < state.playerCount){
+        state.currentPlayer++;
+        state.revealedThisPlayer = false;
+        updateDealUI();
+      }else{
+        // конец раздачи
+        $("afterInfo").textContent = `Игроков: ${state.playerCount}`;
+        showScreen("after");
+      }
+    }
 
-  function screenPlay(){
-    const total = state.players;
+    // --- События ---
+    btnHow.addEventListener("click", ()=>{
+      howBox.style.display = "";
+      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    });
+    btnHideHow.addEventListener("click", ()=> howBox.style.display = "none");
 
-    const top = h("div", {class:"card"},
-      h("div", {class:"inner"},
-        h("h2", {class:"title"}, "Игра началась"),
-        h("p", {class:"desc"},
-          "Все роли выданы. Теперь обсуждение: ходите по кругу и говорите намёк на слово.",
-          " Когда будете готовы — переходите к голосованию/раскрытию."
-        ),
-        h("div", {class:"row"},
-          h("div", {class:"tag good"}, h("span",{class:"miniDot"}), `Игроков: ${total}`),
-          h("div", {class:"tag warn"}, h("span",{class:"miniDot"}), "Не показывайте слово вслух 😄"),
-          h("div", {class:"tag"}, h("span",{class:"miniDot"}), "1 шпион")
-        ),
-        h("div", {class:"divider"}),
-        h("div", {class:"grid2"},
-          h("button", {
-            class:"btn",
-            onclick: () => {
-              state.phase = "end";
-              render();
-            }
-          }, "Голосование / раскрыть"),
-          h("button", {
-            class:"btn secondary",
-            onclick: () => openModal("Шпаргалка подсказок", [
-              h("p", {class:"desc"},
-                "Идеальные подсказки: не слишком очевидные, но и не слишком “в космос”. Примеры формата:"
-              ),
-              h("div", {class:"wordBox"},
-                h("div", {class:"hint"},
-                  "• качество/свойство (мягкое, холодное, круглое)\n" +
-                  "• ассоциация (лето, детство)\n" +
-                  "• категория (техника, еда, место)\n" +
-                  "• действие (режут, включают)\n" +
-                  "• где встречается (кухня, улица, школа)"
-                )
-              ),
-              h("p", {class:"desc"},
-                "Шпиону сложно, если вы не повторяете одно и то же и не говорите супер-прямо."
-              )
-            ])
-          }, "Шпаргалка")
-        )
-      )
-    );
+    btnStart.addEventListener("click", startRound);
 
-    const reminder = h("div", {class:"card"},
-      h("div", {class:"inner"},
-        h("h2", {class:"title"}, "Если кто-то забыл роль"),
-        h("p", {class:"desc"},
-          "Можно снова показать роли по одному — но делайте это аккуратно."
-        ),
-        h("button", {
-          class:"btn secondary",
-          onclick: () => {
-            state.phase = "reveal";
-            state.current = 1;
-            state.revealed = new Set();
-            render();
-          }
-        }, "Повторная выдача ролей")
-      )
-    );
-
-    setScreen(h("div", {}, top, reminder));
-  }
-
-  function screenEnd(){
-    const total = state.players;
-
-    const guessInput = h("input", {
-      class:"input",
-      type:"number",
-      inputmode:"numeric",
-      min: "1",
-      max: String(total),
-      placeholder: "Номер игрока (1.." + total + ")"
+    btnReveal.addEventListener("click", ()=>{
+      // Один игрок — один показ, но можно "Показать ещё раз" в оверлее
+      showReveal(state.currentPlayer);
+      state.revealedThisPlayer = true;
     });
 
-    const revealBtn = h("button", {
-      class:"btn danger",
-      onclick: () => {
-        const guess = clamp(parseInt(guessInput.value || "0", 10), 1, total);
-        const ok = (guess === state.spyIndex);
-
-        openModal("Результат", [
-          h("div", {class:"row"},
-            h("div", {class: ok ? "tag good" : "tag bad"}, h("span",{class:"miniDot"}),
-              ok ? "Шпиона нашли!" : "Не угадали!"
-            )
-          ),
-          h("div", {class:"wordBox"},
-            h("div", {class:"hint"}, "Секреты игры:"),
-            h("div", {class:"big"}, "Шпион: игрок №" + state.spyIndex),
-            h("div", {class:"big"}, "Слово: " + state.word),
-            h("div", {class:"hint"},
-              ok
-                ? "Красиво! Теперь можно начать новую игру."
-                : "Бывает 🙂 Попробуйте заново — и делайте подсказки чуть аккуратнее."
-            )
-          ),
-          h("div", {class:"grid2"},
-            h("button", {
-              class:"btn good",
-              onclick: () => {
-                modal.classList.remove("show");
-                // новая игра с тем же числом игроков
-                state.spyIndex = randInt(1, state.players);
-                state.word = pickRandom(state.words);
-                state.revealed = new Set();
-                state.phase = "reveal";
-                state.current = 1;
-                render();
-              }
-            }, "Новая игра"),
-            h("button", {
-              class:"btn secondary",
-              onclick: () => {
-                modal.classList.remove("show");
-                state.phase = "setup";
-                state.spyIndex = -1;
-                state.word = "";
-                state.revealed = new Set();
-                state.current = 1;
-                render();
-              }
-            }, "В настройки")
-          )
-        ]);
+    btnHide.addEventListener("click", ()=>{
+      hideReveal();
+      if(state.revealedThisPlayer){
+        // После скрытия — автоматически переход к следующему
+        // (чтобы было удобно на телефоне)
+        nextPlayer();
       }
-    }, "Проверить / раскрыть");
+    });
 
-    const card = h("div", {class:"card"},
-      h("div", {class:"inner"},
-        h("h2", {class:"title"}, "Голосование"),
-        h("p", {class:"desc"},
-          "Введите номер игрока, которого вы считаете шпионом. Потом игра раскроет шпиона и слово."
-        ),
-        guessInput,
-        h("div", {class:"grid2"},
-          revealBtn,
-          h("button", {
-            class:"btn secondary",
-            onclick: () => {
-              state.phase = "play";
-              render();
-            }
-          }, "Назад к обсуждению")
-        ),
-        h("div", {class:"divider"}),
-        h("p", {class:"desc"},
-          "Хочешь режим посложнее? Можно сделать 2 шпиона, таймер, или выбор категорий — скажи, добавлю."
-        )
-      )
-    );
+    btnShowAgain.addEventListener("click", ()=>{
+      showReveal(state.lastRevealFor);
+    });
 
-    setScreen(card);
-  }
+    // Клик по фону оверлея — тоже скрыть (удобно одной рукой)
+    revealOverlay.addEventListener("click", (e)=>{
+      if(e.target === revealOverlay){
+        btnHide.click();
+      }
+    });
 
-  function render(){
-    if (!state.words) return; // пока грузится
-    if (state.phase === "setup") return screenSetup();
-    if (state.phase === "reveal") return screenReveal();
-    if (state.phase === "play") return screenPlay();
-    if (state.phase === "end") return screenEnd();
-  }
+    btnReset.addEventListener("click", resetGame);
+    btnReset2.addEventListener("click", resetGame);
 
-  // ====== Старт ======
-  (async function init(){
-    // покажем быстрый экран загрузки
-    setScreen(
-      h("div", {class:"card"},
-        h("div", {class:"inner"},
-          h("h2", {class:"title"}, "Загрузка…"),
-          h("p", {class:"desc"}, "Подключаем словарь из words.json")
-        )
-      )
-    );
+    btnNewRound.addEventListener("click", ()=>{
+      // новый раунд с тем же кол-вом игроков
+      playersInput.value = String(state.playerCount);
+      startRound();
+    });
 
-    const ok = await loadWords();
-    if (!ok) return;
+    // Инициализация
+    (async function init(){
+      // режим
+      const saved = localStorage.getItem("spy_minimal");
+      setMinimal(saved === "1");
 
-    state.phase = "setup";
-    render();
-  })();
-})();
-</script>
+      // слова
+      await loadWords();
+
+      // стартовый сброс (подтянуть инпут)
+      resetGame();
+    })();
+  </script>
 </body>
 </html>
