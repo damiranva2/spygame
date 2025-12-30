@@ -1,0 +1,859 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1220" />
+  <title>Игра “Шпион”</title>
+  <style>
+    :root{
+      --bg0:#070b14;
+      --bg1:#0b1220;
+      --card: rgba(255,255,255,.06);
+      --card2: rgba(255,255,255,.10);
+      --stroke: rgba(255,255,255,.12);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.68);
+      --faint: rgba(255,255,255,.42);
+
+      --a1:#7c3aed; /* violet */
+      --a2:#06b6d4; /* cyan */
+      --good:#22c55e;
+      --bad:#ef4444;
+      --warn:#f59e0b;
+
+      --shadow: 0 18px 60px rgba(0,0,0,.55);
+      --radius: 20px;
+      --radius2: 28px;
+
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bot: env(safe-area-inset-bottom, 0px);
+    }
+
+    *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html,body{ height:100%; margin:0; }
+    body{
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 900px at 15% 10%, rgba(124,58,237,.35), transparent 55%),
+        radial-gradient(900px 700px at 85% 25%, rgba(6,182,212,.28), transparent 55%),
+        radial-gradient(700px 700px at 45% 85%, rgba(34,197,94,.14), transparent 55%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+      overflow-x:hidden;
+    }
+
+    /* Контейнер “под S23”: приятная ширина, но остаётся адаптивным */
+    .wrap{
+      min-height:100%;
+      padding: calc(18px + var(--safe-top)) 16px calc(18px + var(--safe-bot));
+      display:flex;
+      justify-content:center;
+    }
+    .app{
+      width: min(430px, 100%);
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+
+    header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding: 14px 16px;
+      border:1px solid var(--stroke);
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+      border-radius: var(--radius2);
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: calc(10px + var(--safe-top));
+      backdrop-filter: blur(12px);
+      z-index: 5;
+    }
+    .brand{
+      display:flex; flex-direction:column; line-height:1.1;
+    }
+    .brand .t{
+      font-weight: 800;
+      letter-spacing: .2px;
+      font-size: 18px;
+    }
+    .brand .s{
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .chip{
+      display:flex; align-items:center; gap:8px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.05);
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .dot{
+      width:10px; height:10px; border-radius:999px;
+      background: linear-gradient(135deg, var(--a1), var(--a2));
+      box-shadow: 0 0 0 4px rgba(124,58,237,.12);
+    }
+
+    main{
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+
+    .card{
+      border:1px solid var(--stroke);
+      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+      border-radius: var(--radius2);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+
+    .card .inner{
+      padding: 16px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .row{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .title{
+      font-size: 18px;
+      font-weight: 800;
+      margin: 0;
+    }
+    .desc{
+      margin:0;
+      color: var(--muted);
+      line-height: 1.35;
+      font-size: 13px;
+    }
+
+    .divider{
+      height:1px;
+      background: rgba(255,255,255,.10);
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .btn{
+      appearance:none;
+      border:none;
+      cursor:pointer;
+      user-select:none;
+      -webkit-user-select:none;
+      padding: 12px 14px;
+      border-radius: 16px;
+      font-weight: 750;
+      color: rgba(255,255,255,.94);
+      background: linear-gradient(135deg, rgba(124,58,237,.92), rgba(6,182,212,.78));
+      box-shadow: 0 18px 50px rgba(0,0,0,.38);
+      transition: transform .12s ease, filter .12s ease;
+    }
+    .btn:active{ transform: translateY(1px) scale(.99); filter: brightness(.95); }
+    .btn.secondary{
+      background: rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.14);
+      color: var(--text);
+      box-shadow: none;
+    }
+    .btn.danger{
+      background: linear-gradient(135deg, rgba(239,68,68,.90), rgba(245,158,11,.82));
+    }
+    .btn.good{
+      background: linear-gradient(135deg, rgba(34,197,94,.88), rgba(6,182,212,.78));
+    }
+    .btn.ghost{
+      background: transparent;
+      border: 1px solid rgba(255,255,255,.14);
+      color: var(--muted);
+      box-shadow:none;
+    }
+    .btn:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+    }
+
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+    }
+    @media (max-width: 360px){
+      .grid2{ grid-template-columns:1fr; }
+    }
+
+    .input{
+      width: 100%;
+      border-radius: 16px;
+      padding: 12px 14px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      font-weight: 650;
+      outline:none;
+    }
+    .input:focus{
+      border-color: rgba(6,182,212,.55);
+      box-shadow: 0 0 0 4px rgba(6,182,212,.12);
+    }
+
+    .big{
+      font-size: 34px;
+      font-weight: 900;
+      letter-spacing: .2px;
+      line-height: 1.05;
+    }
+    .wordBox{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      padding: 16px;
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: radial-gradient(900px 200px at 20% 10%, rgba(124,58,237,.25), transparent 55%),
+                  radial-gradient(700px 220px at 80% 0%, rgba(6,182,212,.22), transparent 55%),
+                  rgba(255,255,255,.05);
+    }
+
+    .hint{
+      color: var(--faint);
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.05);
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .tag .miniDot{
+      width:8px;height:8px;border-radius:999px;
+      background: rgba(255,255,255,.6);
+    }
+    .tag.good .miniDot{ background: rgba(34,197,94,.95); }
+    .tag.bad .miniDot{ background: rgba(239,68,68,.95); }
+    .tag.warn .miniDot{ background: rgba(245,158,11,.95); }
+
+    .footerNote{
+      text-align:center;
+      color: var(--faint);
+      font-size: 12px;
+      padding: 4px 0 0;
+    }
+
+    .fadeIn{ animation: fade .18s ease-out; }
+    @keyframes fade{ from{ opacity:.0; transform: translateY(4px);} to{ opacity:1; transform: translateY(0);} }
+
+    /* Модалка */
+    .modal{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      display:none;
+      align-items: flex-end;
+      justify-content:center;
+      padding: 16px;
+      padding-bottom: calc(16px + var(--safe-bot));
+      z-index: 20;
+    }
+    .modal.show{ display:flex; }
+    .sheet{
+      width: min(430px, 100%);
+      border-radius: 26px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: linear-gradient(180deg, rgba(20,26,44,.96), rgba(9,14,26,.96));
+      box-shadow: 0 30px 90px rgba(0,0,0,.65);
+      overflow:hidden;
+    }
+    .sheet .top{
+      padding: 14px 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .sheet .top .h{
+      font-weight: 850;
+      font-size: 14px;
+      color: var(--text);
+    }
+    .sheet .body{
+      padding: 16px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    /* Невидимый/служебный */
+    .hidden{ display:none !important; }
+
+    /* Для аккуратного клика/тапа */
+    a{ color: inherit; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="app">
+      <header>
+        <div class="brand">
+          <div class="t">🕵️ Игра “Шпион”</div>
+          <div class="s">Пасс-энд-плей • 1 шпион • русские слова</div>
+        </div>
+        <div class="chip" title="Оптимизация под мобильный экран">
+          <span class="dot"></span>
+          <span>S23-friendly</span>
+        </div>
+      </header>
+
+      <main id="main"></main>
+
+      <div class="footerNote">Подсказка: включи полноэкранный режим в браузере для максимального “вау”.</div>
+    </div>
+  </div>
+
+  <!-- Модалка: раскрытие роли -->
+  <div class="modal" id="modal">
+    <div class="sheet">
+      <div class="top">
+        <div class="h" id="modalTitle">Игрок</div>
+        <button class="btn ghost" id="modalClose">Закрыть</button>
+      </div>
+      <div class="body" id="modalBody"></div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // ====== Настройки ======
+  const WORDS_URL = "words.json";      // <- твой файл со словами рядом с html
+  const MIN_PLAYERS = 3;
+  const MAX_PLAYERS = 20;
+
+  // ====== Состояние ======
+  const state = {
+    words: null,
+    players: 4,
+    started: false,
+    spyIndex: -1,
+    word: "",
+    revealed: new Set(),     // какие игроки уже посмотрели роль
+    phase: "setup",          // setup | reveal | play | end
+    current: 1               // текущий игрок (1..players) для выдачи роли
+  };
+
+  // ====== Утилиты ======
+  const $ = (sel, root=document) => root.querySelector(sel);
+  const main = $("#main");
+
+  function randInt(min, maxInclusive){
+    return Math.floor(Math.random() * (maxInclusive - min + 1)) + min;
+  }
+
+  function pickRandom(arr){
+    return arr[randInt(0, arr.length - 1)];
+  }
+
+  function clamp(n, a, b){
+    return Math.max(a, Math.min(b, n));
+  }
+
+  function h(tag, attrs={}, ...children){
+    const el = document.createElement(tag);
+    for (const [k,v] of Object.entries(attrs || {})){
+      if (k === "class") el.className = v;
+      else if (k.startsWith("on") && typeof v === "function") el.addEventListener(k.slice(2).toLowerCase(), v);
+      else if (v !== null && v !== undefined) el.setAttribute(k, v);
+    }
+    for (const ch of children.flat()){
+      if (ch === null || ch === undefined) continue;
+      if (typeof ch === "string") el.appendChild(document.createTextNode(ch));
+      else el.appendChild(ch);
+    }
+    return el;
+  }
+
+  function setScreen(node){
+    main.innerHTML = "";
+    main.appendChild(node);
+    node.classList.add("fadeIn");
+  }
+
+  // ====== Загрузка слов ======
+  async function loadWords(){
+    try{
+      const res = await fetch(WORDS_URL, { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      if (!Array.isArray(data) || data.length < 10) throw new Error("words.json должен быть массивом строк");
+      // чистим/нормализуем
+      const words = data
+        .filter(x => typeof x === "string")
+        .map(x => x.trim())
+        .filter(Boolean);
+      if (words.length < 10) throw new Error("В words.json слишком мало слов");
+      state.words = words;
+      return true;
+    }catch(e){
+      state.words = null;
+      showWordsError(e);
+      return false;
+    }
+  }
+
+  function showWordsError(err){
+    const card = h("div", {class:"card"},
+      h("div", {class:"inner"},
+        h("div", {class:"row"},
+          h("div", {class:"tag bad"}, h("span",{class:"miniDot"}), "Не удалось загрузить words.json")
+        ),
+        h("p", {class:"desc"},
+          "Положи рядом с этим HTML файл ",
+          h("b", {}, "words.json"),
+          " (массив строк на русском). Открой игру через локальный сервер (важно!)."
+        ),
+        h("div", {class:"wordBox"},
+          h("div", {class:"hint"},
+            "Почему может не работать:\n" +
+            "• Открыл(а) файл двойным кликом (file://) — браузер часто блокирует fetch.\n" +
+            "• words.json лежит не рядом с html.\n" +
+            "• В json неверный формат.\n\n" +
+            "Решение: запусти локальный сервер. Например:\n" +
+            "1) установи Node.js\n" +
+            "2) в папке с файлами: npx serve\n" +
+            "или Python: python -m http.server 8000"
+          ),
+          h("div", {class:"hint"}, "Техническая ошибка: " + String(err?.message || err))
+        ),
+        h("button", {class:"btn secondary", onclick: () => location.reload()}, "Перезагрузить")
+      )
+    );
+    setScreen(card);
+  }
+
+  // ====== Модалка ======
+  const modal = $("#modal");
+  const modalTitle = $("#modalTitle");
+  const modalBody = $("#modalBody");
+  $("#modalClose").addEventListener("click", () => modal.classList.remove("show"));
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) modal.classList.remove("show");
+  });
+
+  function openModal(title, bodyNodes){
+    modalTitle.textContent = title;
+    modalBody.innerHTML = "";
+    bodyNodes.forEach(n => modalBody.appendChild(n));
+    modal.classList.add("show");
+  }
+
+  // ====== Экраны ======
+  function screenSetup(){
+    const playersInput = h("input", {
+      class:"input",
+      type:"number",
+      inputmode:"numeric",
+      min: String(MIN_PLAYERS),
+      max: String(MAX_PLAYERS),
+      value: String(state.players),
+      "aria-label":"Количество игроков"
+    });
+
+    const spyMode = h("div", {class:"pill"},
+      "🕶️ Шпионов: ",
+      h("b", {}, "1"),
+      h("span", {style:"opacity:.65"}, " (можно расширить позже)")
+    );
+
+    const wordsStatus = state.words
+      ? h("div", {class:"tag good"}, h("span",{class:"miniDot"}), `Слова загружены: ${state.words.length}`)
+      : h("div", {class:"tag warn"}, h("span",{class:"miniDot"}), "Слова: загрузка…");
+
+    const startBtn = h("button", {
+      class:"btn",
+      disabled: !state.words,
+      onclick: () => {
+        const n = clamp(parseInt(playersInput.value || "0", 10), MIN_PLAYERS, MAX_PLAYERS);
+        state.players = n;
+
+        // старт игры
+        state.spyIndex = randInt(1, state.players); // 1..players
+        state.word = pickRandom(state.words);
+        state.revealed = new Set();
+        state.phase = "reveal";
+        state.current = 1;
+        render();
+      }
+    }, "Начать игру");
+
+    const card = h("div", {class:"card"},
+      h("div", {class:"inner"},
+        h("h2", {class:"title"}, "Настройка"),
+        h("p", {class:"desc"},
+          "Сначала выбери количество игроков. Затем телефон будет передаваться по кругу, чтобы каждый увидел свою роль."
+        ),
+        h("div", {class:"divider"}),
+        h("div", {class:"row"},
+          h("div", {style:"flex:1; min-width:180px; display:flex; flex-direction:column; gap:8px;"},
+            h("div", {class:"pill"}, "👥 Игроков: ", h("b", {}, String(state.players))),
+            playersInput
+          ),
+          h("div", {style:"display:flex; flex-direction:column; gap:8px;"},
+            spyMode,
+            wordsStatus
+          )
+        ),
+        h("div", {class:"grid2"},
+          startBtn,
+          h("button", {
+            class:"btn secondary",
+            onclick: () => openModal("Формат words.json", [
+              h("p", {class:"desc"},
+                "Создай файл ",
+                h("b", {}, "words.json"),
+                " рядом с этим HTML. Пример:"
+              ),
+              h("div", {class:"wordBox"},
+                h("div", {class:"hint"},
+                  '["яблоко","самолёт","молоко","кофе","театр"]'
+                )
+              ),
+              h("p", {class:"desc"},
+                "Если открываешь с телефона, лучше через локальный сервер/хостинг (GitHub Pages тоже подойдёт)."
+              )
+            ])
+          }, "Как подключить слова")
+        )
+      )
+    );
+
+    const tips = h("div", {class:"card"},
+      h("div", {class:"inner"},
+        h("h2", {class:"title"}, "Как играть"),
+        h("p", {class:"desc"},
+          "Все, кроме шпиона, получают одно слово. Шпион видит только “Ты шпион”.",
+          " Дальше вы по кругу говорите намёки на слово — так, чтобы шпион не понял сразу, но и чтобы свои поняли 🙂"
+        ),
+        h("div", {class:"row"},
+          h("div", {class:"tag"}, h("span",{class:"miniDot"}), "Пример: слово “яблоко”"),
+          h("div", {class:"tag"}, h("span",{class:"miniDot"}), "1: “красное”"),
+          h("div", {class:"tag"}, h("span",{class:"miniDot"}), "2: “еда”"),
+          h("div", {class:"tag"}, h("span",{class:"miniDot"}), "3: “металл” (палится 😄)")
+        )
+      )
+    );
+
+    setScreen(h("div", {}, card, tips));
+  }
+
+  function screenReveal(){
+    const total = state.players;
+    const i = state.current;
+
+    const progress = h("div", {class:"row"},
+      h("div", {class:"pill"}, "🎭 Выдача ролей"),
+      h("div", {class:"pill"}, "Игрок ", h("b", {}, String(i)), " из ", h("b", {}, String(total)))
+    );
+
+    const instructions = h("div", {class:"wordBox"},
+      h("div", {class:"hint"},
+        "Передай телефон игроку №" + i + ".\n" +
+        "Пусть он нажмёт кнопку “Показать роль”, посмотрит, затем нажмёт “Скрыть” и передаст следующему."
+      )
+    );
+
+    const showRole = h("button", {
+      class:"btn good",
+      onclick: () => {
+        const isSpy = (i === state.spyIndex);
+        const body = [];
+
+        body.push(h("div", {class:"row"},
+          h("div", {class: isSpy ? "tag bad" : "tag good"}, h("span",{class:"miniDot"}),
+            isSpy ? "ШПИОН" : "НЕ ШПИОН"
+          )
+        ));
+
+        body.push(h("div", {class:"wordBox"},
+          h("div", {class:"hint"}, "Твоя роль:"),
+          h("div", {class:"big"}, isSpy ? "Ты шпион 🕵️" : "Твоё слово"),
+          h("div", {class:"big", style: isSpy ? "opacity:.25; filter: blur(0px);" : ""}, isSpy ? "—" : state.word),
+          h("div", {class:"hint"},
+            isSpy
+              ? "Твоя цель — понять слово по подсказкам и не спалиться."
+              : "Давай аккуратные подсказки: чтобы свои поняли, а шпион — не сразу."
+          )
+        ));
+
+        body.push(h("button", {
+          class:"btn secondary",
+          onclick: () => {
+            modal.classList.remove("show");
+            // отмечаем просмотр
+            state.revealed.add(i);
+
+            // следующий игрок или конец выдачи
+            if (state.current < state.players) {
+              state.current += 1;
+              render();
+            } else {
+              state.phase = "play";
+              render();
+            }
+          }
+        }, "Скрыть и передать дальше"));
+
+        openModal("Игрок №" + i, body);
+      }
+    }, "Показать роль");
+
+    const resetBtn = h("button", {
+      class:"btn secondary",
+      onclick: () => {
+        state.phase = "setup";
+        state.started = false;
+        state.spyIndex = -1;
+        state.word = "";
+        state.revealed = new Set();
+        state.current = 1;
+        render();
+      }
+    }, "Сбросить");
+
+    const card = h("div", {class:"card"},
+      h("div", {class:"inner"},
+        progress,
+        h("p", {class:"desc"},
+          "Важно: смотрит только текущий игрок. Остальные отворачиваются 🙂"
+        ),
+        instructions,
+        h("div", {class:"grid2"},
+          showRole,
+          resetBtn
+        )
+      )
+    );
+
+    setScreen(card);
+  }
+
+  function screenPlay(){
+    const total = state.players;
+
+    const top = h("div", {class:"card"},
+      h("div", {class:"inner"},
+        h("h2", {class:"title"}, "Игра началась"),
+        h("p", {class:"desc"},
+          "Все роли выданы. Теперь обсуждение: ходите по кругу и говорите намёк на слово.",
+          " Когда будете готовы — переходите к голосованию/раскрытию."
+        ),
+        h("div", {class:"row"},
+          h("div", {class:"tag good"}, h("span",{class:"miniDot"}), `Игроков: ${total}`),
+          h("div", {class:"tag warn"}, h("span",{class:"miniDot"}), "Не показывайте слово вслух 😄"),
+          h("div", {class:"tag"}, h("span",{class:"miniDot"}), "1 шпион")
+        ),
+        h("div", {class:"divider"}),
+        h("div", {class:"grid2"},
+          h("button", {
+            class:"btn",
+            onclick: () => {
+              state.phase = "end";
+              render();
+            }
+          }, "Голосование / раскрыть"),
+          h("button", {
+            class:"btn secondary",
+            onclick: () => openModal("Шпаргалка подсказок", [
+              h("p", {class:"desc"},
+                "Идеальные подсказки: не слишком очевидные, но и не слишком “в космос”. Примеры формата:"
+              ),
+              h("div", {class:"wordBox"},
+                h("div", {class:"hint"},
+                  "• качество/свойство (мягкое, холодное, круглое)\n" +
+                  "• ассоциация (лето, детство)\n" +
+                  "• категория (техника, еда, место)\n" +
+                  "• действие (режут, включают)\n" +
+                  "• где встречается (кухня, улица, школа)"
+                )
+              ),
+              h("p", {class:"desc"},
+                "Шпиону сложно, если вы не повторяете одно и то же и не говорите супер-прямо."
+              )
+            ])
+          }, "Шпаргалка")
+        )
+      )
+    );
+
+    const reminder = h("div", {class:"card"},
+      h("div", {class:"inner"},
+        h("h2", {class:"title"}, "Если кто-то забыл роль"),
+        h("p", {class:"desc"},
+          "Можно снова показать роли по одному — но делайте это аккуратно."
+        ),
+        h("button", {
+          class:"btn secondary",
+          onclick: () => {
+            state.phase = "reveal";
+            state.current = 1;
+            state.revealed = new Set();
+            render();
+          }
+        }, "Повторная выдача ролей")
+      )
+    );
+
+    setScreen(h("div", {}, top, reminder));
+  }
+
+  function screenEnd(){
+    const total = state.players;
+
+    const guessInput = h("input", {
+      class:"input",
+      type:"number",
+      inputmode:"numeric",
+      min: "1",
+      max: String(total),
+      placeholder: "Номер игрока (1.." + total + ")"
+    });
+
+    const revealBtn = h("button", {
+      class:"btn danger",
+      onclick: () => {
+        const guess = clamp(parseInt(guessInput.value || "0", 10), 1, total);
+        const ok = (guess === state.spyIndex);
+
+        openModal("Результат", [
+          h("div", {class:"row"},
+            h("div", {class: ok ? "tag good" : "tag bad"}, h("span",{class:"miniDot"}),
+              ok ? "Шпиона нашли!" : "Не угадали!"
+            )
+          ),
+          h("div", {class:"wordBox"},
+            h("div", {class:"hint"}, "Секреты игры:"),
+            h("div", {class:"big"}, "Шпион: игрок №" + state.spyIndex),
+            h("div", {class:"big"}, "Слово: " + state.word),
+            h("div", {class:"hint"},
+              ok
+                ? "Красиво! Теперь можно начать новую игру."
+                : "Бывает 🙂 Попробуйте заново — и делайте подсказки чуть аккуратнее."
+            )
+          ),
+          h("div", {class:"grid2"},
+            h("button", {
+              class:"btn good",
+              onclick: () => {
+                modal.classList.remove("show");
+                // новая игра с тем же числом игроков
+                state.spyIndex = randInt(1, state.players);
+                state.word = pickRandom(state.words);
+                state.revealed = new Set();
+                state.phase = "reveal";
+                state.current = 1;
+                render();
+              }
+            }, "Новая игра"),
+            h("button", {
+              class:"btn secondary",
+              onclick: () => {
+                modal.classList.remove("show");
+                state.phase = "setup";
+                state.spyIndex = -1;
+                state.word = "";
+                state.revealed = new Set();
+                state.current = 1;
+                render();
+              }
+            }, "В настройки")
+          )
+        ]);
+      }
+    }, "Проверить / раскрыть");
+
+    const card = h("div", {class:"card"},
+      h("div", {class:"inner"},
+        h("h2", {class:"title"}, "Голосование"),
+        h("p", {class:"desc"},
+          "Введите номер игрока, которого вы считаете шпионом. Потом игра раскроет шпиона и слово."
+        ),
+        guessInput,
+        h("div", {class:"grid2"},
+          revealBtn,
+          h("button", {
+            class:"btn secondary",
+            onclick: () => {
+              state.phase = "play";
+              render();
+            }
+          }, "Назад к обсуждению")
+        ),
+        h("div", {class:"divider"}),
+        h("p", {class:"desc"},
+          "Хочешь режим посложнее? Можно сделать 2 шпиона, таймер, или выбор категорий — скажи, добавлю."
+        )
+      )
+    );
+
+    setScreen(card);
+  }
+
+  function render(){
+    if (!state.words) return; // пока грузится
+    if (state.phase === "setup") return screenSetup();
+    if (state.phase === "reveal") return screenReveal();
+    if (state.phase === "play") return screenPlay();
+    if (state.phase === "end") return screenEnd();
+  }
+
+  // ====== Старт ======
+  (async function init(){
+    // покажем быстрый экран загрузки
+    setScreen(
+      h("div", {class:"card"},
+        h("div", {class:"inner"},
+          h("h2", {class:"title"}, "Загрузка…"),
+          h("p", {class:"desc"}, "Подключаем словарь из words.json")
+        )
+      )
+    );
+
+    const ok = await loadWords();
+    if (!ok) return;
+
+    state.phase = "setup";
+    render();
+  })();
+})();
+</script>
+</body>
+</html>
